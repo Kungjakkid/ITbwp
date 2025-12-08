@@ -1,13 +1,13 @@
-// 🔴 ใส่ URL และ Key ของคุณ 🔴
+// 🔴 ใส่ URL และ Key ของคุณ (คัดลอกจาก app.js มา) 🔴
 const SUPABASE_URL = 'https://yqlyxzowfbowznpzapxf.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxbHl4em93ZmJvd3pucHphcHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMTc3NDEsImV4cCI6MjA3ODU5Mzc0MX0.ZhJAq0mt3LAamCZlBGux_fwhyQIlOab_0BFsaWubHko';
 
-// 🌟 แก้ไขจุดที่ Error: เปลี่ยนชื่อตัวแปรเป็น supabaseClient
+// 🌟 ใช้ supabaseClient (เพื่อไม่ให้ชนกับ Library หลัก)
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let verifiedUser = null; 
 const notebookSelect = document.getElementById('notebookSelect');
-const inputEmpId = document.getElementById('inputEmpId'); // เพิ่มตัวแปรนี้ให้ชัดเจน
+const inputEmpId = document.getElementById('inputEmpId'); 
 
 // เริ่มทำงาน
 window.onload = async () => { await loadNotebooks(); };
@@ -16,7 +16,7 @@ window.onload = async () => { await loadNotebooks(); };
 async function loadNotebooks() {
     notebookSelect.innerHTML = '<option>Loading...</option>';
     
-    // ใช้ supabaseClient แทน supabase
+    // ใช้ supabaseClient
     const { data, error } = await supabaseClient
         .from('computers')
         .select('computer_id, spec')
@@ -52,7 +52,7 @@ async function verifyEmployee() {
     // ใช้ supabaseClient
     const { data, error } = await supabaseClient
         .from('employees')
-        .select('name, department, position')
+        .select('name, department')
         .eq('employee_id', id)
         .single();
 
@@ -61,9 +61,10 @@ async function verifyEmployee() {
         document.getElementById('userInfo').style.display='none'; 
         verifiedUser = null; 
     } else {
+        // 🌟 แก้ไขจุดนี้: เอา showPos ออก เพราะใน HTML ไม่มี 🌟
         document.getElementById('showName').innerText = data.name;
         document.getElementById('showDept').innerText = data.department || '-';
-        document.getElementById('showPos').innerText = data.position || '-'; // เพิ่มตำแหน่ง
+        
         document.getElementById('userInfo').style.display='block';
         verifiedUser = { id: id, ...data };
     }
