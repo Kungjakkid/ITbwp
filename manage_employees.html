@@ -20,7 +20,7 @@
     <div class="main-wrapper">
         <main class="content-area">
             <div class="button-group">
-                <button onclick="openEmployeeModal('create')" class="btn-create">+ พนักงานใหม่</button>
+                <button onclick="openModal('create')" class="btn-create">+ พนักงานใหม่</button>
             </div>
             <div class="table-container-card">
                 <table class="summary-table">
@@ -46,6 +46,7 @@
             <form id="employeeForm">
                 <input type="hidden" id="formMode">
                 <input type="hidden" id="editEmployeeId">
+                
                 <input type="hidden" id="oldComputerId">
                 <input type="hidden" id="oldPrinterId">
 
@@ -83,6 +84,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script> <script src="manage_employees.js"></script>
+    <script src="manage_employees.js"></script>
 </body>
 </html>
