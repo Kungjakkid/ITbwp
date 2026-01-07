@@ -1,9 +1,0 @@
-<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ปริ้นเตอร์</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"></head><body class="admin-body">
-    <nav class="sidebar"><div class="sidebar-header"><h1>IT Asset Pro</h1></div><ul class="sidebar-menu"><li><a href="index.html">Dashboard</a></li><li><a href="manage_employees.html">พนักงาน</a></li><li><a href="manage_computers.html">คอมพิวเตอร์</a></li><li><a href="manage_printers.html" class="active">ปริ้นเตอร์</a></li><li><a href="view_logs.html">Log</a></li></ul></nav>
-    <div class="main-wrapper"><main class="content-area">
-        <div class="button-group"><button onclick="openModal('create')" class="btn-create">+ ปริ้นเตอร์</button></div>
-        <div class="table-container-card"><table class="summary-table"><thead><tr><th>รหัส</th><th>รุ่น</th><th>ผู้ใช้</th><th>Action</th></tr></thead><tbody id="list"></tbody></table></div>
-    </main></div>
-    <div id="modalBackdrop"><div id="dataModal"><h3>ปริ้นเตอร์</h3><form id="form"><input type="hidden" id="mode"><input type="hidden" id="eid"><label>รหัส:</label><input type="text" id="pid"><label>รุ่น:</label><input type="text" id="pmodel"><div class="button-group" style="margin-top:20px;"><button type="button" onclick="save()" class="btn-save">บันทึก</button><button type="button" onclick="closeModal()" class="btn-cancel">ยกเลิก</button></div></form></div></div>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="manage_printers.js"></script>
-</body></html>
