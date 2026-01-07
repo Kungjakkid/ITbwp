@@ -1,113 +1,137 @@
-const SUPABASE_URL = 'https://yqlyxzowfbowznpzapxf.supabase.co'; 
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxbHl4em93ZmJvd3pucHphcHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMTc3NDEsImV4cCI6MjA3ODU5Mzc0MX0.ZhJAq0mt3LAamCZlBGux_fwhyQIlOab_0BFsaWubHko';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// manage_employees.js
+// ไม่ต้องประกาศ URL/KEY แล้ว เพราะดึงมาจาก config.js
 
 window.onload = loadAllEmployees;
 
-// โหลดรายชื่อพนักงาน + แสดงว่าใครถือคอมเครื่องไหนอยู่
+// 1. โหลดข้อมูลพนักงาน + ทรัพย์สินที่ถืออยู่
 async function loadAllEmployees() {
-    const table = document.getElementById('employeeListBody'); 
-    table.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-    
-    // ดึงข้อมูลพนักงาน พร้อม join ตารางคอมและปริ้นเตอร์มาดูด้วย
-    const { data } = await supabaseClient
+    const table = document.getElementById('employeeListBody');
+    table.innerHTML = '<tr><td colspan="6" style="text-align:center">กำลังโหลดข้อมูล...</td></tr>';
+
+    // Join ตารางคอมและปริ้นเตอร์ เพื่อดูว่าใครถืออะไรอยู่
+    const { data, error } = await supabaseClient
         .from('employees')
-        .select(`*, computers(computer_id), printers(printer_id)`)
+        .select(`*, computers(computer_id, spec), printers(printer_id, model)`)
         .order('employee_id');
+
+    if (error) { console.error(error); return alert('โหลดข้อมูลไม่สำเร็จ'); }
 
     table.innerHTML = '';
     data.forEach(e => {
-        // เช็คว่าถือของอะไรอยู่บ้าง
-        const com = e.computers.length > 0 ? `<span class="status-badge status-in-use">${e.computers[0].computer_id}</span>` : '-';
-        const prn = e.printers.length > 0 ? e.printers[0].printer_id : '-';
+        // เช็คว่ามีคอมไหม (ถ้ามีให้โชว์รหัส ถ้าไม่มีขีดละ)
+        const com = e.computers.length > 0 
+            ? `<span class="status-badge status-in-use">${e.computers[0].computer_id}</span>` 
+            : '<span style="color:#ccc">-</span>';
+        
+        const prn = e.printers.length > 0 
+            ? `<span class="status-badge status-in-use">${e.printers[0].printer_id}</span>`
+            : '<span style="color:#ccc">-</span>';
 
         table.innerHTML += `
             <tr>
                 <td><b>${e.employee_id}</b></td>
                 <td>${e.name}</td>
-                <td>${e.department||'-'}</td>
-                <td>${com}</td> <td>${e.position||'-'}</td>
+                <td>${e.department || '-'}</td>
+                <td>${com}</td>
+                <td>${prn}</td>
                 <td>
-                    <button onclick="openEmployeeModal('update','${e.employee_id}')">แก้ไข/เปลี่ยนเครื่อง</button>
-                    <button onclick="deleteEmployee('${e.employee_id}','${e.name}')" class="btn-delete">ลาออก/ลบ</button>
+                    <button onclick="openModal('update', '${e.employee_id}')"><i class="fas fa-edit"></i> แก้ไข</button>
+                    <button onclick="deleteEmployee('${e.employee_id}', '${e.name}')" class="btn-delete"><i class="fas fa-trash"></i> ลบ</button>
                 </td>
-            </tr>`;
+            </tr>
+        `;
     });
 }
 
-// ฟังก์ชันโหลดตัวเลือก Asset (คอม/ปริ้นเตอร์) ลง Dropdown
-async function populateAssetDropdowns(currentOwnerId = null) {
+// 2. เตรียม Dropdown เลือกของ (โชว์เฉพาะของว่าง + ของตัวเอง)
+async function populateAssets(currentOwnerId = null) {
     const comSel = document.getElementById('formComputer');
     const prnSel = document.getElementById('formPrinter');
     
     comSel.innerHTML = '<option>Loading...</option>';
     prnSel.innerHTML = '<option>Loading...</option>';
 
-    // ดึงคอมที่ "ว่าง" หรือ "เป็นของคนนี้อยู่แล้ว"
-    const {data: computers} = await supabaseClient.from('computers').select('computer_id, user_id, spec');
-    const {data: printers} = await supabaseClient.from('printers').select('printer_id, user_id, model');
+    // ดึงคอม/ปริ้นเตอร์ทั้งหมด
+    const { data: computers } = await supabaseClient.from('computers').select('computer_id, user_id, spec, loan_borrower_name').order('computer_id');
+    const { data: printers } = await supabaseClient.from('printers').select('printer_id, user_id, model').order('printer_id');
 
     // สร้างตัวเลือก Computer
-    comSel.innerHTML = '<option value="">-- ไม่ใช้งาน / คืนเครื่อง --</option>';
+    comSel.innerHTML = '<option value="">-- ไม่ระบุ / คืนเครื่อง --</option>';
     computers.forEach(c => {
-        // เงื่อนไข: เอาที่ว่าง (user_id=null) หรือ เป็นของคนนี้ (user_id=currentOwnerId)
-        if (c.user_id === null || c.user_id === currentOwnerId) {
-            const isSelected = c.user_id === currentOwnerId;
-            // ถ้าเป็นของคนนี้ ให้จำค่าเดิมใส่ Hidden Input ไว้เช็คตอน Save
-            if (isSelected) document.getElementById('originalComputerId').value = c.computer_id;
+        // เงื่อนไข: (ว่าง AND ไม่ได้ถูกยืมชั่วคราว) OR (เป็นเจ้าของเดิม)
+        const isFree = (c.user_id === null && c.loan_borrower_name === null);
+        const isMine = (c.user_id === currentOwnerId);
+
+        if (isFree || isMine) {
+            const selected = isMine ? 'selected' : '';
+            if (isMine) document.getElementById('oldComputerId').value = c.computer_id; // จำเครื่องเดิม
             
-            comSel.add(new Option(`${c.computer_id} (${c.spec||'-'})`, c.computer_id, false, isSelected));
+            comSel.insertAdjacentHTML('beforeend', 
+                `<option value="${c.computer_id}" ${selected}>${c.computer_id} - ${c.spec || ''}</option>`
+            );
         }
     });
 
     // สร้างตัวเลือก Printer
-    prnSel.innerHTML = '<option value="">-- ไม่ใช้งาน / คืนเครื่อง --</option>';
+    prnSel.innerHTML = '<option value="">-- ไม่ระบุ / คืนเครื่อง --</option>';
     printers.forEach(p => {
-        if (p.user_id === null || p.user_id === currentOwnerId) {
-            const isSelected = p.user_id === currentOwnerId;
-            if (isSelected) document.getElementById('originalPrinterId').value = p.printer_id;
+        const isFree = (p.user_id === null);
+        const isMine = (p.user_id === currentOwnerId);
+
+        if (isFree || isMine) {
+            const selected = isMine ? 'selected' : '';
+            if (isMine) document.getElementById('oldPrinterId').value = p.printer_id; // จำเครื่องเดิม
             
-            prnSel.add(new Option(`${p.printer_id} (${p.model||'-'})`, p.printer_id, false, isSelected));
+            prnSel.insertAdjacentHTML('beforeend', 
+                `<option value="${p.printer_id}" ${selected}>${p.printer_id} - ${p.model || ''}</option>`
+            );
         }
     });
 }
 
-async function openEmployeeModal(mode, id=null) {
-    document.getElementById('employeeForm').reset(); 
+// 3. เปิด Modal
+window.openModal = async function(mode, id = null) {
+    document.getElementById('employeeForm').reset();
     document.getElementById('formMode').value = mode;
-    document.getElementById('originalComputerId').value = ""; // รีเซ็ตค่าเดิม
-    document.getElementById('originalPrinterId').value = "";
+    document.getElementById('oldComputerId').value = ""; // Reset ค่าเดิม
+    document.getElementById('oldPrinterId').value = "";
 
-    if(mode === 'create') {
+    if (mode === 'create') {
         document.getElementById('formEmployeeId').readOnly = false;
-        await populateAssetDropdowns(null); // โหลดของว่าง
+        await populateAssets(null);
     } else {
-        document.getElementById('formEmployeeId').readOnly = true; 
+        document.getElementById('formEmployeeId').readOnly = true;
         document.getElementById('editEmployeeId').value = id;
         
-        // ดึงข้อมูลพนักงาน
+        // ดึงข้อมูลเก่า
         const { data } = await supabaseClient.from('employees').select('*').eq('employee_id', id).single();
-        document.getElementById('formEmployeeId').value = data.employee_id;
-        document.getElementById('formName').value = data.name;
-        document.getElementById('formDepartment').value = data.department;
-        document.getElementById('formPosition').value = data.position;
-        document.getElementById('formEmail').value = data.email;
-        document.getElementById('formDeskPhone').value = data.desk_phone;
-
-        // โหลด Asset และติ๊กเลือกอันที่ใช้อยู่ให้อัตโนมัติ
-        await populateAssetDropdowns(id);
+        if (data) {
+            document.getElementById('formEmployeeId').value = data.employee_id;
+            document.getElementById('formName').value = data.name;
+            document.getElementById('formDepartment').value = data.department;
+            document.getElementById('formPosition').value = data.position;
+            document.getElementById('formEmail').value = data.email;
+            document.getElementById('formDeskPhone').value = data.desk_phone;
+            
+            // โหลด Dropdown โดยส่ง ID ไปเพื่อติ๊กถูกของที่ถืออยู่
+            await populateAssets(id);
+        }
     }
     document.getElementById('modalBackdrop').style.display = 'block';
 }
 
-// 🔥 ไฮไลท์: ฟังก์ชันบันทึกที่แก้ Bug เรื่องเปลี่ยนเครื่อง
+// 4. บันทึกข้อมูล (หัวใจหลักของการแก้บัค)
 async function handleEmployeeSubmit() {
     const mode = document.getElementById('formMode').value;
-    const empId = mode === 'create' ? document.getElementById('formEmployeeId').value : document.getElementById('editEmployeeId').value;
+    const empId = mode === 'create' 
+        ? document.getElementById('formEmployeeId').value 
+        : document.getElementById('editEmployeeId').value;
     
-    // 1. บันทึกข้อมูลพื้นฐานพนักงาน (เหมือนเดิม)
-    const payload = {
-        employee_id: document.getElementById('formEmployeeId').value,
+    if(!empId) return alert('กรุณาระบุรหัสพนักงาน');
+
+    // A. ข้อมูลพนักงาน
+    const empData = {
+        employee_id: empId,
         name: document.getElementById('formName').value,
         department: document.getElementById('formDepartment').value,
         position: document.getElementById('formPosition').value,
@@ -115,62 +139,65 @@ async function handleEmployeeSubmit() {
         desk_phone: document.getElementById('formDeskPhone').value
     };
 
-    if (mode === 'create') {
-        await supabaseClient.from('employees').insert([payload]);
-    } else {
-        delete payload.employee_id;
-        await supabaseClient.from('employees').update(payload).eq('employee_id', empId);
+    try {
+        // 1. Save Employee Table
+        if (mode === 'create') {
+            const { error } = await supabaseClient.from('employees').insert([empData]);
+            if (error) throw error;
+        } else {
+            const { error } = await supabaseClient.from('employees').update(empData).eq('employee_id', empId);
+            if (error) throw error;
+        }
+
+        // 2. Manage Assets (Logic สลับเครื่อง)
+        const newCom = document.getElementById('formComputer').value;
+        const oldCom = document.getElementById('oldComputerId').value;
+        const newPrn = document.getElementById('formPrinter').value;
+        const oldPrn = document.getElementById('oldPrinterId').value;
+
+        // -- Logic Computer --
+        if (newCom !== oldCom) {
+            // ถ้ามีเครื่องเก่า -> ปลดออก (Set null)
+            if (oldCom) await supabaseClient.from('computers').update({ user_id: null }).eq('computer_id', oldCom);
+            // ถ้าเลือกเครื่องใหม่ -> ใส่ชื่อเรา (Set user_id)
+            if (newCom) await supabaseClient.from('computers').update({ user_id: empId, loan_borrower_name: null }).eq('computer_id', newCom);
+        }
+
+        // -- Logic Printer --
+        if (newPrn !== oldPrn) {
+            if (oldPrn) await supabaseClient.from('printers').update({ user_id: null }).eq('printer_id', oldPrn);
+            if (newPrn) await supabaseClient.from('printers').update({ user_id: empId }).eq('printer_id', newPrn);
+        }
+
+        alert('บันทึกข้อมูลสำเร็จ!');
+        closeModal();
+        loadAllEmployees();
+
+    } catch (err) {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
     }
-
-    // 2. จัดการ Asset (ส่วนที่เพิ่มใหม่)
-    const newComputer = document.getElementById('formComputer').value;
-    const oldComputer = document.getElementById('originalComputerId').value;
-    const newPrinter = document.getElementById('formPrinter').value;
-    const oldPrinter = document.getElementById('originalPrinterId').value;
-
-    // --- Logic จัดการคอมพิวเตอร์ ---
-    // ถ้ามีการเปลี่ยน (เลือกใหม่ ไม่ตรงกับของเดิม)
-    if (newComputer !== oldComputer) {
-        // A. ถ้าเดิมมีเครื่องอยู่ -> ปลดเครื่องเก่าให้ว่าง (user_id = null)
-        if (oldComputer) {
-            await supabaseClient.from('computers').update({ user_id: null }).eq('computer_id', oldComputer);
-        }
-        // B. ถ้าเลือกเครื่องใหม่ -> ผูกกับคนนี้ (user_id = empId)
-        if (newComputer) {
-            await supabaseClient.from('computers').update({ user_id: empId, loan_borrower_name: null }).eq('computer_id', newComputer);
-        }
-    }
-
-    // --- Logic จัดการปริ้นเตอร์ ---
-    if (newPrinter !== oldPrinter) {
-        if (oldPrinter) {
-            await supabaseClient.from('printers').update({ user_id: null }).eq('printer_id', oldPrinter);
-        }
-        if (newPrinter) {
-            await supabaseClient.from('printers').update({ user_id: empId }).eq('printer_id', newPrinter);
-        }
-    }
-
-    alert('บันทึกสำเร็จ'); 
-    closeModal(); 
-    loadAllEmployees();
 }
 
-// ฟังก์ชันลบพนักงาน (ลาออก)
-async function deleteEmployee(id, name) {
-    if(!confirm(`ต้องการลบ ${name} และปลดทรัพย์สินทั้งหมดใช่ไหม?`)) return;
-    
-    // ปลด Asset ทั้งหมดให้อัตโนมัติ
-    await supabaseClient.from('computers').update({user_id: null}).eq('user_id', id);
-    await supabaseClient.from('printers').update({user_id: null}).eq('user_id', id);
-    
-    // ลบ User
-    await supabaseClient.from('employees').delete().eq('employee_id', id);
-    
-    alert('ลบเรียบร้อย ทรัพย์สินทั้งหมดคืนสถานะ "ว่าง"'); 
-    loadAllEmployees();
+// 5. ลบพนักงาน (ต้องเคลียร์ของด้วย)
+window.deleteEmployee = async function(id, name) {
+    if (!confirm(`ยืนยันลบพนักงาน: ${name} ?\n(ทรัพย์สินจะถูกปลดออกอัตโนมัติ)`)) return;
+
+    try {
+        // 1. ปลดคอมทั้งหมดของคนนี้
+        await supabaseClient.from('computers').update({ user_id: null }).eq('user_id', id);
+        // 2. ปลดปริ้นเตอร์ทั้งหมด
+        await supabaseClient.from('printers').update({ user_id: null }).eq('user_id', id);
+        // 3. ลบคน
+        const { error } = await supabaseClient.from('employees').delete().eq('employee_id', id);
+        
+        if (error) throw error;
+        alert('ลบเรียบร้อย');
+        loadAllEmployees();
+    } catch (err) {
+        alert('ลบไม่สำเร็จ: ' + err.message);
+    }
 }
 
-function closeModal() { 
-    document.getElementById('modalBackdrop').style.display = 'none'; 
+window.closeModal = function() {
+    document.getElementById('modalBackdrop').style.display = 'none';
 }
