@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>Dashboard - IT Asset Pro</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"></head><body>
+    <nav class="sidebar">
+        <div class="sidebar-header"><h1><i class="fas fa-cube"></i> IT ASSET</h1></div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html" class="active"><i class="fas fa-chart-pie"></i> ภาพรวม (Dashboard)</a></li>
+            <li><a href="manage_employees.html"><i class="fas fa-users"></i> พนักงาน</a></li>
+            <li><a href="manage_computers.html"><i class="fas fa-laptop"></i> คอมพิวเตอร์</a></li>
+            <li><a href="manage_printers.html"><i class="fas fa-print"></i> ปริ้นเตอร์</a></li>
+            <li><a href="view_logs.html"><i class="fas fa-history"></i> ประวัติ Log</a></li>
+        </ul>
+    </nav>
+    <div class="main-wrapper"><main class="content-area">
+        <div style="margin-bottom: 30px;">
+            <h2 style="color: #1e293b;">สวัสดี, IT Admin 👋</h2>
+            <p style="color: #64748b;">ภาพรวมทรัพย์สินทั้งหมดขององค์กร</p>
+        </div>
+        <div id="stats-summary-box">
+            <div class="stat-card" onclick="setFilter('nb_free', this)"><div class="stat-icon bg-notebook"><i class="fas fa-laptop"></i></div><div class="stat-info"><h4>Notebook ว่าง</h4><p id="st-nb">...</p></div></div>
+            <div class="stat-card" onclick="setFilter('pc_free', this)"><div class="stat-icon bg-pc"><i class="fas fa-desktop"></i></div><div class="stat-info"><h4>PC ว่าง</h4><p id="st-pc">...</p></div></div>
+            <div class="stat-card" onclick="setFilter('in_use', this)"><div class="stat-icon bg-use"><i class="fas fa-user-check"></i></div><div class="stat-info"><h4>ใช้งานอยู่</h4><p id="st-use">...</p></div></div>
+            <div class="stat-card" onclick="setFilter('loaned', this)"><div class="stat-icon bg-loan"><i class="fas fa-clock"></i></div><div class="stat-info"><h4>ถูกยืม</h4><p id="st-loan">...</p></div></div>
+        </div>
+        <div class="charts-wrapper">
+            <div class="chart-box"><h3 style="font-size:1rem; margin-bottom:15px; color:#475569;">สถานะทรัพย์สิน</h3><canvas id="statusChart" style="max-height: 250px;"></canvas></div>
+            <div class="chart-box"><h3 style="font-size:1rem; margin-bottom:15px; color:#475569;">แยกตามประเภท</h3><canvas id="typeChart" style="max-height: 250px;"></canvas></div>
+        </div>
+        <div class="table-container-card"><table class="summary-table"><thead><tr><th>รหัสทรัพย์สิน</th><th>ประเภท</th><th>สถานะ</th><th>ผู้ถือครอง</th><th>แผนก</th><th>สเปค</th></tr></thead><tbody id="resBody"></tbody></table></div>
+    </main></div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script>
+</body></html>
