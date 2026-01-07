@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>จัดการพนักงาน (IT Pro)</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="admin-body">
+    <nav class="sidebar">
+        <div class="sidebar-header"><h1>IT Asset Pro</h1></div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html">Dashboard</a></li>
+            <li><a href="manage_employees.html" class="active">พนักงาน</a></li>
+            <li><a href="manage_computers.html">คอมพิวเตอร์</a></li>
+            <li><a href="manage_printers.html">ปริ้นเตอร์</a></li>
+            <li><a href="view_logs.html">Log</a></li>
+            <li><a href="loan.html" target="_blank">หน้ายืม</a></li>
+        </ul>
+    </nav>
+    <div class="main-wrapper">
+        <main class="content-area">
+            
+            <div class="asset-toolbar">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <h2 style="margin:0; color:#0f172a;">รายชื่อพนักงาน</h2>
+                    <span id="totalCount" style="background:#e2e8f0; padding:2px 12px; border-radius:20px; font-size:0.85rem; font-weight:700; color:#475569;">Loading...</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <div style="position:relative;">
+                        <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
+                        <input type="text" id="searchInput" placeholder="ค้นหาชื่อ, แผนก..." onkeyup="filterEmployees()" style="padding-left:35px; margin:0; width:250px;">
+                    </div>
+                    <button onclick="openCreateModal()" class="btn-action btn-primary"><i class="fas fa-user-plus"></i> เพิ่มพนักงาน</button>
+                </div>
+            </div>
+
+            <div id="employeeGrid" class="asset-grid">
+                <div style="text-align:center; grid-column:1/-1;">กำลังโหลดข้อมูล...</div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="detailModal">
+        <div class="detail-content" style="height:auto; max-height:90vh;">
+            <div class="detail-header">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <div class="card-icon" style="background:#eff6ff; color:#3b82f6;"><i class="fas fa-user"></i></div>
+                    <div>
+                        <h2 id="viewName" style="margin:0;">...</h2>
+                        <span id="viewId" style="color:#64748b;">...</span>
+                    </div>
+                </div>
+                <button onclick="closeDetailModal()" class="btn-action btn-outline"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="detail-body" style="flex-direction: column; overflow-y: auto;">
+                <div style="padding:30px;">
+                    <form id="editForm">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                            <div>
+                                <label>ชื่อ-นามสกุล:</label>
+                                <input type="text" id="editName">
+                            </div>
+                            <div>
+                                <label>แผนก:</label>
+                                <input type="text" id="editDept">
+                            </div>
+                            <div>
+                                <label>ตำแหน่ง:</label>
+                                <input type="text" id="editPos">
+                            </div>
+                            <div>
+                                <label>เบอร์โทร:</label>
+                                <input type="text" id="editPhone">
+                            </div>
+                            <div style="grid-column: 1/-1;">
+                                <label>Email:</label>
+                                <input type="text" id="editEmail">
+                            </div>
+                        </div>
+
+                        <hr style="margin:25px 0; border:0; border-top:1px solid #e2e8f0;">
+                        
+                        <h4 style="color:#334155; margin-bottom:15px;"><i class="fas fa-link"></i> ทรัพย์สินที่ถือครอง (Asset Assignment)</h4>
+                        <div style="background:#f8fafc; padding:20px; border-radius:12px; border:1px solid #e2e8f0;">
+                            <label>คอมพิวเตอร์:</label>
+                            <select id="editComputer"></select>
+                            
+                            <label style="margin-top:15px;">ปริ้นเตอร์:</label>
+                            <select id="editPrinter"></select>
+                        </div>
+
+                        <div style="margin-top:30px; display:flex; gap:15px; justify-content: flex-end;">
+                            <button type="button" onclick="deleteCurrentEmployee()" class="btn-action btn-danger"><i class="fas fa-trash"></i> ลบพนักงาน</button>
+                            <button type="button" onclick="saveChanges()" class="btn-action btn-primary" style="min-width:120px;"><i class="fas fa-save"></i> บันทึก</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="createModal" style="display:none; position:fixed; z-index:1001; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+        <div style="background:white; width:400px; margin:10% auto; padding:30px; border-radius:16px;">
+            <h3 style="margin-top:0;">เพิ่มพนักงานใหม่</h3>
+            <label>รหัสพนักงาน:</label>
+            <input type="text" id="newId" placeholder="เช่น 1001">
+            <label>ชื่อ-นามสกุล:</label>
+            <input type="text" id="newName">
+            <label>แผนก:</label>
+            <input type="text" id="newDept">
+            
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button onclick="document.getElementById('createModal').style.display='none'" class="btn-action btn-outline">ยกเลิก</button>
+                <button onclick="createNewEmployee()" class="btn-action btn-primary">สร้าง</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="manage_employees.js"></script>
+</body>
+</html>
